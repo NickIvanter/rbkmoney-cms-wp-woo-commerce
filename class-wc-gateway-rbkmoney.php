@@ -240,7 +240,7 @@ function rbkmoney_add_gateway_class()
             $button_label = !empty($form_button_label) ? 'data-label="' . $form_button_label . '"' : '';
 
             $form_description = $this->get_option('form_description');
-            $description = !empty($form_description) ? 'data-description="' . $form_description . '"' : '';
+			$description = !empty($form_description) ? 'data-description="' . $form_description . '"' : 'data-description="№' . $order->id . '"';
 
             $form_css_button = $this->get_option('form_css_button');
             $style = !empty($form_css_button) ? '<style>' . $form_css_button . '</style>' : '';
@@ -251,6 +251,9 @@ function rbkmoney_add_gateway_class()
                     ' . $company_name . '
                     ' . $button_label . '
                     ' . $description . '
+                    data-email="' . $order->get_billing_email() . '"
+                    data-require-card-holder="false"
+                    data-terminals="false"
                     >
                     </script>
                 </form>';
