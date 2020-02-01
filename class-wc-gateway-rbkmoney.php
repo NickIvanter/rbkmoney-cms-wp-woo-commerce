@@ -178,6 +178,9 @@ function rbkmoney_add_gateway_class() {
 
 			self::$log_enabled = $this->debug;
 
+			$this->payment_page = str_replace( 'https:', 'http:', add_query_arg( 'wc-api', 'checkout_rbk', home_url( '/' ) ) );
+			add_action( 'woocommerce_api_checkout_rbk', array( $this, 'display_payment_form' ) );
+
 			/**
 			 * Once we’ve set these variables, the constructor will need a few other functions.
 			 * We’ll have to initialize the form fields and settings.
@@ -200,16 +203,38 @@ function rbkmoney_add_gateway_class() {
 		 * Output for the order received page.
 		 */
 		public function thankyou_page() {
-			$session_handler = new WC_Session_Handler();
 
 			if ( isset( $_GET['status'] ) && $_GET['status'] == 'success' ) {
-				$session_handler->destroy_session();
 				echo __( '<b>Оплата принята</b>', $this->id );
 
 				return;
 			}
 
 			$order_id = wc_get_order_id_by_order_key( $_GET['key'] );
+
+			// Reduce stock levels
+			wc_reduce_stock_levels( $order_id );
+
+			// Remove cart
+			WC()->cart->empty_cart();
+		}
+
+		/**
+		 * Redirection to hosted payment page
+		 *
+		 **/
+		public function display_payment_form() {
+
+			$session_handler = new WC_Session_Handler();
+
+			$order_id = wc_get_order_id_by_order_key( $_GET['key'] );
+
+			if ( empty( $order_id ) ) {
+				$this->log( 'Empty OrderId' );
+				wc_add_notice( 'Во время обработки заказа произошла ошибка.', 'error' );
+				wp_redirect( wc_get_checkout_url() );
+				exit();
+			}
 
 			/** @var WC_Abstract_Order $order */
 			$order = wc_get_order( $order_id );
@@ -234,33 +259,56 @@ function rbkmoney_add_gateway_class() {
 			}
 
 			$form_company_name = $this->get_option( 'form_company_name' );
-			$company_name      = ! empty( $form_company_name ) ? 'data-name="' . $form_company_name . '"' : '';
-
-			$form_button_label = $this->get_option( 'form_button_label' );
-			$button_label      = ! empty( $form_button_label ) ? 'data-label="' . $form_button_label . '"' : '';
-
-			$form_description = $this->get_option( 'form_description' );
-			$description      = ! empty( $form_description ) ? 'data-description="' . $form_description . '"' : 'data-description="№' . $order->id . '"';
+			$company_name      = ! empty( $form_company_name ) ? $form_company_name : '';
 
 			$form_css_button = $this->get_option( 'form_css_button' );
 			$style           = ! empty( $form_css_button ) ? '<style>' . $form_css_button . '</style>' : '';
-			$form            = '<form action="' . $this->get_return_url( $order ) . '&status=success' . '" method="POST">
-                    <script src="' . static::PAYMENT_FORM_URL . '" class="rbkmoney-checkout"
-                    data-invoice-id="' . $invoice_id . '"
-                    data-invoice-access-token="' . $access_token . '"
-                    ' . $company_name . '
-                    ' . $button_label . '
-                    ' . $description . '
-                    data-email="' . $order->get_billing_email() . '"
-                    data-require-card-holder="false"
-                    data-terminals="false"
-                    >
-                    </script>
-                </form>';
 
-			$html = $style . $form;
 
-			echo $html;
+			$html = "
+			<script src=\"" . static::PAYMENT_FORM_URL . "\"></script>
+			<script>
+
+			var checkout;
+
+			window.onload = function () {			    
+			    checkout = RbkmoneyCheckout.configure({
+                    invoiceID: '" . $invoice_id . "',
+    				invoiceAccessToken: '" . $access_token . "',
+    				name: '" . $company_name . "',
+    				description: 'Заказ №" . $order_id . "',
+    				email: '" . $order->get_billing_email() . "',
+    				popupMode: true,
+    				googlePay: false,
+    				requireCardHolder: false,
+    				
+    				opened: function () {
+        				console.log('Checkout opened');
+    				},
+    				closed: function () {
+        				console.log('Checkout closed');
+    				},
+    				finished: function () {
+        				console.log('Payment completed successfully');	
+        				window.location.replace('" . $this->get_return_url( $order ) . '&status=success' . "');
+    				}
+				});
+			    checkout.open();
+			};
+			</script>
+			
+			<div style='max-width: 320px; text-align: center;'
+			
+			<p>Сейчас вы будете перенаправлены на форму оплаты. Если этого не произойдёт автоматически, нажмите на кнопку:</p>
+		
+			<form action='#' method='GET'>
+			<button  id='rbkmoney-button' onclick='event.preventDefault(); checkout.open();'>Перейти к оплате</button>
+			</form>
+			</div>
+			";
+
+			echo $style . $html;
+			exit();
 		}
 
 		/**
@@ -526,23 +574,12 @@ function rbkmoney_add_gateway_class() {
 		 * @return array
 		 */
 		public function process_payment( $order_id ) {
+
 			$order = wc_get_order( $order_id );
 
-			// Mark as pending
-			$status_start_payment = $this->get_option( 'status_start_payment' );
-			$order->update_status( $status_start_payment, _x( 'Order received (unpaid)', 'Check payment method', 'woocommerce' ) );
-
-
-			// Reduce stock levels
-			wc_reduce_stock_levels( $order_id );
-
-			// Remove cart
-			WC()->cart->empty_cart();
-
-			// Return thankyou redirect
 			return array(
 				'result'   => 'success',
-				'redirect' => $this->get_return_url( $order ),
+				'redirect' => $this->payment_page . '&key=' . $order->get_order_key()
 			);
 		}
 
