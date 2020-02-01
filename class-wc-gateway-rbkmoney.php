@@ -205,7 +205,7 @@ function rbkmoney_add_gateway_class() {
 		public function thankyou_page() {
 
 			if ( isset( $_GET['status'] ) && $_GET['status'] == 'success' ) {
-				echo __( '<b>Оплата принята</b>', $this->id );
+				echo __( '<b>Оплата принята</b>. <br><br>Пожалуйста, проверьте почту: мы отправили подтверждение и инструкции для входа в личный кабинет.', $this->id );
 
 				return;
 			}
