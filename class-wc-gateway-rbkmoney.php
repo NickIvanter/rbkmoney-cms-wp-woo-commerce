@@ -380,8 +380,7 @@ function rbkmoney_add_gateway_class() {
 
 				if ( $data[ static::EVENT_TYPE ] == static::EVENT_TYPE_INVOICE_PAID ) {
 					$order->add_order_note( sprintf( __( 'Платеж подтвержден', $this->id ) . '(invoice ID: %1$s)', $data[ static::INVOICE ][ static::INVOICE_ID ] ) );
-					$status_order_paid = $this->get_option( 'status_order_paid' );
-					$order->update_status( $status_order_paid, sprintf( __( 'Платеж оплачен', $this->id ) . '(invoice ID: %1$s)', $data[ static::INVOICE ][ static::INVOICE_ID ] ) );
+					$order->payment_complete( $data[ static::INVOICE ][ static::INVOICE_ID ] );
 					$message = __( 'Платеж подтвержден', $this->id ) . ', invoice ID: ' . $data[ static::INVOICE ][ static::INVOICE_ID ];
 				}
 
