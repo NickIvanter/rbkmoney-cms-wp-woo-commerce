@@ -204,12 +204,6 @@ function rbkmoney_add_gateway_class() {
 		 */
 		public function thankyou_page() {
 
-			if ( isset( $_GET['status'] ) && $_GET['status'] == 'success' ) {
-				echo __( '<b>Оплата принята</b>. <br><br>Пожалуйста, проверьте почту: мы отправили подтверждение и инструкции для входа в личный кабинет.', $this->id );
-
-				return;
-			}
-
 			$order_id = wc_get_order_id_by_order_key( $_GET['key'] );
 
 			// Reduce stock levels
@@ -217,6 +211,46 @@ function rbkmoney_add_gateway_class() {
 
 			// Remove cart
 			WC()->cart->empty_cart();
+
+			if ( ! isset( $_GET['status'] ) || $_GET['status'] != 'success' ) {
+				return;
+			}
+
+			echo '<p><strong>Оплата принята</strong>.</p>';
+			echo '<p>Пожалуйста, проверьте почту: мы отправили подтверждение и инструкции для входа в личный кабинет.</p>';
+
+			/** @var WC_Abstract_Order $order */
+			$order = wc_get_order( $order_id );
+
+			if ( $user = get_user_by( 'email', $order->get_billing_email() ) ) {
+				$user_id = $user->ID;
+			} else {
+				$user_id = wc_create_new_customer( $order->get_billing_email(), '', '', array(
+					'first_name' => $order->get_billing_first_name(),
+					'last_name'  => $order->get_billing_last_name(),
+				) );
+
+				if ( is_wp_error( $user_id ) ) {
+					throw new Exception( $user_id->get_error_message() );
+				}
+			}
+
+			/**
+			 * Unless the billing email belongs to an administrator,
+			 * authenticate user without requiring password.
+			 */
+			if ( ! user_can( $user_id, 'manage_options' ) ) {
+				wc_set_customer_auth_cookie( $user_id );
+
+				/*
+				 * Link the order to the user_id.
+				 */
+				wc_update_new_customer_past_orders( $user_id );
+
+				echo '<p><strong>Уже можно приступать к обучению</strong>.</p>';
+			}
+
+			echo '<p><a href="' . get_permalink( get_option( 'woocommerce_myaccount_page_id' ) ) . '" class="button">Перейти в личный кабинет</a><p>';
 		}
 
 		/**
