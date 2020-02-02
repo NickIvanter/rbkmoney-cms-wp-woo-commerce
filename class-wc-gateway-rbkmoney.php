@@ -293,6 +293,18 @@ function rbkmoney_add_gateway_class() {
 				exit();
 			}
 
+			$order_description = '';
+
+			$order_items = $order->get_items( array( 'line_item' ) );
+
+			foreach ( $order_items as $item_id => $order_item ) {
+
+				if ( ! empty( $order_description ) ) {
+					$order_description .= ', ';
+				}
+				$order_description .= $order_item->get_name();
+			}
+
 			$form_company_name = $this->get_option( 'form_company_name' );
 			$company_name      = ! empty( $form_company_name ) ? $form_company_name : '';
 
@@ -311,7 +323,7 @@ function rbkmoney_add_gateway_class() {
                     invoiceID: '" . $invoice_id . "',
     				invoiceAccessToken: '" . $access_token . "',
     				name: '" . $company_name . "',
-    				description: 'Заказ №" . $order_id . "',
+    				description: '" . $order_description . "',
     				email: '" . $order->get_billing_email() . "',
     				popupMode: true,
     				googlePay: false,
