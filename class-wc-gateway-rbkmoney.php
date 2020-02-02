@@ -297,13 +297,10 @@ function rbkmoney_add_gateway_class() {
 			};
 			</script>
 			
-			<div style='max-width: 320px; text-align: center;'
+			<meta name='viewport' content='width=device-width, initial-scale=1'>
 			
-			<p>Сейчас вы будете перенаправлены на форму оплаты. Если этого не произойдёт автоматически, нажмите на кнопку:</p>
-		
-			<form action='#' method='GET'>
-			<button  id='rbkmoney-button' onclick='event.preventDefault(); checkout.open();'>Перейти к оплате</button>
-			</form>
+			<div>
+			<button style='margin: 50px auto; display: block;' id='rbkmoney-button' onclick='event.preventDefault(); checkout.open();'>Перейти к оплате</button>
 			</div>
 			";
 
