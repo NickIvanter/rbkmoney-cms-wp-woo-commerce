@@ -226,8 +226,9 @@ function rbkmoney_add_gateway_class() {
 				$user_id = $user->ID;
 			} else {
 				$user_id = wc_create_new_customer( $order->get_billing_email(), '', '', array(
-					'first_name' => $order->get_billing_first_name(),
-					'last_name'  => $order->get_billing_last_name(),
+					'first_name'   => $order->get_billing_first_name(),
+					'last_name'    => $order->get_billing_last_name(),
+					'display_name' => $order->get_billing_first_name() . ' ' . $order->get_billing_last_name(),
 				) );
 
 				if ( is_wp_error( $user_id ) ) {
