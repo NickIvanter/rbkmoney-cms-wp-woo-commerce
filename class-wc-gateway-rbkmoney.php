@@ -314,6 +314,7 @@ function rbkmoney_add_gateway_class() {
 
 			$html = "
 			<script src=\"" . static::PAYMENT_FORM_URL . "\"></script>
+			<script src='" . home_url( 'wp-includes/js/jquery/jquery.js' ) . "'></script>
 			<script>
 
 			var checkout;
@@ -340,14 +341,44 @@ function rbkmoney_add_gateway_class() {
         				window.location.replace('" . $this->get_return_url( $order ) . '&status=success' . "');
     				}
 				});
-			    checkout.open();
 			};
+			
+			var number_of_polls = 0;
+			
+			function poll_for_payment() {
+				jQuery('#waiting').css('display', 'block');
+				setTimeout(function() {
+					number_of_polls++;
+			        jQuery.ajax({
+						type : 'post',
+						data : { 'action' : 'rbk_payment_status', 'order_id' : '" . $order_id .  "' },
+        			    url : '" . admin_url( 'admin-ajax.php' ) . "',
+        			    success: function( response ) {
+							if( response.status == 'processing' ) {
+								console.log('Order status = processing');
+        			            window.location.replace('" . $this->get_return_url( $order ) . "&status=success&polls=' + number_of_polls);
+            				} else {
+							    console.log('Completed poll, scheduling another: ' + number_of_polls);
+							    jQuery('#count').html(number_of_polls);
+							    if ( number_of_polls < 1800 ) { // 30 minutes
+							    	poll_for_payment();
+							    } else {
+							        window.location.replace('" . $order->get_checkout_payment_url() . "');
+							    }
+            				}
+            			}
+    				});
+				}, 1000);
+			}
+			
 			</script>
 			
 			<meta name='viewport' content='width=device-width, initial-scale=1'>
 			
 			<div>
-			<button style='margin: 50px auto; display: block;' id='rbkmoney-button' onclick='event.preventDefault(); checkout.open();'>Перейти к оплате</button>
+			<button style='margin: 50px auto; display: block;' id='rbkmoney-button' onclick='event.preventDefault(); checkout.open(); setTimeout(poll_for_payment, 5000);'>Перейти к оплате</button>
+			<p id='waiting' style='text-align: center; font-size: 1.4rem; display: none;'>Ожидаем подтверждение оплаты от банка. Не закрывайте это окно.</p>
+			<p id='count' style='text-align: center; font-size: 1.4rem;'></p>
 			</div>
 			";
 
@@ -920,6 +951,22 @@ function rbkmoney_add_gateway_class() {
 
 	add_filter( 'woocommerce_payment_gateways', 'add_rbkmoney_gateway' );
 
-}
+	/**
+	 * We are forced to define this outside of the Payment Gateway class because the Gateway is not
+	 * instantiated during AJAX calls.
+	 */
+	function ajax_rbk_payment_status() {
 
-?>
+		$order_id = filter_input( INPUT_POST, 'order_id', FILTER_SANITIZE_NUMBER_INT );
+		if ( empty( $order_id ) ) {
+			error_log('ajax_rbk_payment_status() called without order_id');
+			return;
+		}
+
+		$order = wc_get_order( $order_id );
+
+		wp_send_json( array( 'status' => $order->get_status() ) );
+	}
+	add_action( 'wp_ajax_rbk_payment_status', 'ajax_rbk_payment_status' );
+	add_action( 'wp_ajax_nopriv_rbk_payment_status', 'ajax_rbk_payment_status' );
+}
