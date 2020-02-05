@@ -178,7 +178,7 @@ function rbkmoney_add_gateway_class() {
 
 			self::$log_enabled = $this->debug;
 
-			$this->payment_page = str_replace( 'https:', 'http:', add_query_arg( 'wc-api', 'checkout_rbk', home_url( '/' ) ) );
+			$this->payment_page = add_query_arg( 'wc-api', 'checkout_rbk', home_url( '/' ) );
 			add_action( 'woocommerce_api_checkout_rbk', array( $this, 'display_payment_form' ) );
 
 			/**
