@@ -328,6 +328,7 @@ function rbkmoney_add_gateway_class() {
     				email: '" . $order->get_billing_email() . "',
     				popupMode: true,
     				googlePay: false,
+    				samsungPay: false,
     				requireCardHolder: false,
     				
     				opened: function () {
