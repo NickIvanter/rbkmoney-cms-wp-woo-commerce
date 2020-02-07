@@ -348,7 +348,6 @@ function rbkmoney_add_gateway_class() {
 			
 			function poll_for_payment() {
 				jQuery('#waiting').css('display', 'block');
-				jQuery('#do-not-close').css('display', 'none');
 				setTimeout(function() {
 					number_of_polls++;
 			        jQuery.ajax({
@@ -378,12 +377,7 @@ function rbkmoney_add_gateway_class() {
 			<meta name='viewport' content='width=device-width, initial-scale=1'>
 			
 			<div>
-			<button style='margin: 50px auto; display: block;' id='rbkmoney-button' onclick='event.preventDefault(); checkout.open(); setTimeout(poll_for_payment, 1000);'>Перейти к оплате</button>
-			<div id='do-not-close' style='text-align: center; font-size: 1.4rem;'>
-			<p>Не закрывайте это окно сразу после оплаты.</p>
-			<p>Здесь появится ссылка для доступа к материалам курса.</p>
-			<p>(Мы её продублируем и по электронной почте тоже.)</p>
-			</div>
+			<button style='margin: 50px auto; display: block;' id='rbkmoney-button' onclick='event.preventDefault(); checkout.open(); setTimeout(poll_for_payment, 5000);'>Перейти к оплате</button>
 			<p id='waiting' style='text-align: center; font-size: 1.4rem; display: none;'>Ожидаем подтверждение оплаты от банка. Не закрывайте это окно.</p>
 			<p id='count' style='text-align: center; font-size: 1.4rem;'></p>
 			</div>
